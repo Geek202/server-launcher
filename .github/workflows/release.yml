@@ -6,31 +6,31 @@ on:
       - published
 
 jobs:
-  name: Build on ${{ matrix.os }}
+  name: Build release on ${{ matrix.os }}
 
-    runs-on: ${{ matrix.os }}
+  runs-on: ${{ matrix.os }}
 
-    strategy:
-      matrix:
-        os: [ubuntu-latest, 'windows-latest']
-        rust: [stable]
+  strategy:
+    matrix:
+      os: [ubuntu-latest, 'windows-latest']
+      rust: [stable]
 
-    steps:
-    - uses: hecrj/setup-rust-action@v1
+  steps:
+  - uses: hecrj/setup-rust-action@v1
+    with:
+      rust-version: ${{ matrix.rust }}
+  - uses: actions/checkout@v1
+  - name: Build release
+    run: cargo build --verbose --release
+  - name: Upload GitHub release (Windows)
+      uses: AButler/upload-release-assets@v2.0
+      if: matrix.os == 'windows-latest'
       with:
-        rust-version: ${{ matrix.rust }}
-    - uses: actions/checkout@v1
-    - name: Build release
-      run: cargo build --verbose --release
-    - name: Upload GitHub release (Windows)
-        uses: AButler/upload-release-assets@v2.0
-        if: matrix.os == 'windows-latest'
-        with:
-          files: 'target/release/server-launcher.exe'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Upload GitHub release (unix)
-        uses: AButler/upload-release-assets@v2.0
-        if: matrix.os != 'windows-latest'
-        with:
-          files: 'target/release/server-launcher.exe'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        files: 'target/release/server-launcher.exe'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+  - name: Upload GitHub release (unix)
+      uses: AButler/upload-release-assets@v2.0
+      if: matrix.os != 'windows-latest'
+      with:
+        files: 'target/release/server-launcher.exe'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
