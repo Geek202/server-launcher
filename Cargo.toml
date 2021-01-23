@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 webhook = "1.0.1"
 tokio = "0.2"
+futures = "0.3"

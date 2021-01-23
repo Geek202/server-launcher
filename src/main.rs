@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     send_message(&webhook, "Starting server...").await?;
 
     loop {
-        let exit_code = run_server(&webhook, command.to_owned(), &args)?;
+        let exit_code = run_server(command.to_owned(), &args).await?;
         if exit_code == 0 {
             let was_restart = std::path::Path::new(".restart_reason").exists();
             if was_restart {
@@ -32,6 +32,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 send_message(&webhook, "Server exited normally, not restarting!").await?;
                 break;
             }
+        } else if exit_code == 0xFFAAFF {
+            send_message(&webhook, "Server didn't return an exit code? Assuming hard crash and restarting...").await?;
         } else {
             send_message(&webhook, "Server exited with non-zero exit code, restarting...").await?;
         }
@@ -44,14 +46,10 @@ async fn send_message(webhook: &Webhook, msg: &str) -> Result<(), Box<dyn Error>
     webhook.send(|message| message.content(msg)).await
 }
 
-fn run_server(webhook: &Webhook, program: String, args: &Vec<String>) -> std::io::Result<i32> {
+async fn run_server(program: String, args: &Vec<String>) -> std::io::Result<i32> {
     let code = Command::new(program)
         .args(args)
         .spawn()?.wait()?
-        .code().unwrap_or_else(|error| {
-        println!("Server didn't return an exit code?");
-        send_message(webhook, "Server didn't return an exit code? Assuming hard crash and restarting...");
-        -1
-    });
+        .code().unwrap_or_else(|| { 0xFFAAFF });
     Ok(code)
 }
