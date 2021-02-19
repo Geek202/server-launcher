@@ -6,14 +6,10 @@ use std::fs;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    println!("Hello, world!");
-
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0);
     let command = args[0].to_owned();
     args.remove(0);
-
-    println!("{:?}", args);
 
     let webhook_url = std::env::var("WEBHOOK_URL").unwrap();
     let webhook = Webhook::from_url(&*webhook_url);
