@@ -11,10 +11,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let command = args[0].to_owned();
     args.remove(0);
 
-    let webhook_url = std::env::var("WEBHOOK_URL").unwrap();
-    let webhook = Webhook::from_url(&*webhook_url);
+    let webhook_url = std::env::var("WEBHOOK_URL").unwrap_or_else("");
+    let webhook = if webhook_url != "" {
+        Some(Webhook::from_url(&*webhook_url));
+    } else {
+        None
+    };
 
-    send_message(&webhook, "Starting server...").await?;
+    send_message(&*webhook, "Starting server...").await?;
 
     loop {
         let exit_code = run_server(command.to_owned(), &args).await?;
@@ -22,24 +26,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let was_restart = std::path::Path::new(".restart_reason").exists();
             if was_restart {
                 let restart_reason = fs::read_to_string(".restart_reason").expect("Failed to read restart reason!");
-                send_message(&webhook, &*("Restarting server as it was requested!\nReason: ".to_owned() + &restart_reason)).await?;
+                send_message(&*webhook, &*("Restarting server as it was requested!\nReason: ".to_owned() + &restart_reason)).await?;
                 fs::remove_file(".restart_reason").expect("failed to remove restart reason file!");
             } else {
-                send_message(&webhook, "Server exited normally, not restarting!").await?;
+                send_message(&*webhook, "Server exited normally, not restarting!").await?;
                 break;
             }
         } else if exit_code == 0xFFAAFF {
-            send_message(&webhook, "Server didn't return an exit code? Assuming hard crash and restarting...").await?;
+            send_message(&*webhook, "Server didn't return an exit code? Assuming hard crash and restarting...").await?;
         } else {
-            send_message(&webhook, "Server exited with non-zero exit code, restarting...").await?;
+            send_message(&*webhook, "Server exited with non-zero exit code, restarting...").await?;
         }
     }
 
     Ok(())
 }
 
-async fn send_message(webhook: &Webhook, msg: &str) -> Result<(), Box<dyn Error>> {
-    webhook.send(|message| message.content(msg)).await
+async fn send_message(webhook: Option<Webhook>, msg: &str) -> Result<(), Box<dyn Error>> {
+    match webhook {
+        Some(webhook) => webhook.send(|message| message.content(msg)).await,
+        _ => {}
+    }
 }
 
 async fn run_server(program: String, args: &Vec<String>) -> std::io::Result<i32> {
