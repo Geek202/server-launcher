@@ -79,6 +79,7 @@ async fn send_message(webhook: &Option<Webhook>, msg: &str) -> Result<(), Box<dy
 async fn run_server(program: String, args: &Vec<String>) -> std::io::Result<i32> {
     let code = Command::new(program)
         .args(args)
+        .env("SERVER_LAUNCHER", "true")
         .spawn()?.wait()?
         .code().unwrap_or_else(|| { 0xFFAAFF });
     Ok(code)
